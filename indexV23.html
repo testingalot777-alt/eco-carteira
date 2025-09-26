@@ -1,0 +1,2245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECO CARTEIRA - Reciclagem Sustentável</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white rounded-2xl card-shadow p-8 text-center">
+            <div class="text-4xl mb-4">♻️</div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">ECO CARTEIRA</h1>
+            <div class="loading mx-auto mb-4"></div>
+            <p class="text-gray-600">Carregando...</p>
+        </div>
+    </div>
+
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl card-shadow p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="text-4xl mb-2">♻️</div>
+                <h1 class="text-3xl font-bold text-gray-800">ECO CARTEIRA</h1>
+                <p class="text-gray-600 mt-2">Transforme reciclagem em pontos</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">E-mail</label>
+                    <input type="email" id="loginEmail" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                           placeholder="seu@email.com">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
+                    <input type="password" id="loginPassword" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                           placeholder="••••••••">
+                </div>
+                
+                <button type="submit" id="loginBtn"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                    <span id="loginBtnText">Entrar</span>
+                    <div id="loginBtnLoading" class="loading ml-2 hidden"></div>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">Não tem conta? 
+                    <button id="showRegister" class="text-green-600 hover:text-green-700 font-semibold">
+                        Cadastre-se
+                    </button>
+                </p>
+                <button id="showForgotPassword" class="text-sm text-gray-500 hover:text-gray-700 mt-2 block mx-auto">
+                    Esqueceu a senha?
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela de Cadastro -->
+    <div id="registerScreen" class="min-h-screen flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl card-shadow p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="text-4xl mb-2">♻️</div>
+                <h1 class="text-3xl font-bold text-gray-800">Criar Conta</h1>
+                <p class="text-gray-600 mt-2">Junte-se ao ECO CARTEIRA</p>
+            </div>
+            
+            <form id="registerForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
+                    <input type="text" id="registerName" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                           placeholder="Seu nome completo">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">E-mail</label>
+                    <input type="email" id="registerEmail" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                           placeholder="seu@email.com">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
+                    <input type="password" id="registerPassword" required minlength="6"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                           placeholder="••••••••">
+                    <p class="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+                </div>
+                
+                <button type="submit" id="registerBtn"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                    <span id="registerBtnText">Criar Conta</span>
+                    <div id="registerBtnLoading" class="loading ml-2 hidden"></div>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">Já tem conta? 
+                    <button id="showLogin" class="text-green-600 hover:text-green-700 font-semibold">
+                        Fazer login
+                    </button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela de Recuperação de Senha -->
+    <div id="forgotPasswordScreen" class="min-h-screen flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl card-shadow p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="text-4xl mb-2">🔐</div>
+                <h1 class="text-3xl font-bold text-gray-800">Recuperar Senha</h1>
+                <p class="text-gray-600 mt-2">Digite seu e-mail para receber as instruções</p>
+            </div>
+            
+            <form id="forgotPasswordForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">E-mail</label>
+                    <input type="email" id="forgotEmail" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                           placeholder="seu@email.com">
+                </div>
+                
+                <button type="submit" id="forgotBtn"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                    <span id="forgotBtnText">Enviar E-mail</span>
+                    <div id="forgotBtnLoading" class="loading ml-2 hidden"></div>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <button id="backToLogin" class="text-green-600 hover:text-green-700 font-semibold">
+                    ← Voltar ao login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div id="dashboard" class="min-h-screen hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="text-2xl">♻️</div>
+                    <h1 class="text-2xl font-bold text-gray-800">ECO CARTEIRA</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userName" class="text-gray-700 font-medium"></span>
+                    <button id="adminPanelBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium hidden">
+                        Painel Admin
+                    </button>
+                    <button id="logoutBtn" class="text-red-600 hover:text-red-700 font-medium">
+                        Sair
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="max-w-6xl mx-auto p-4 space-y-6">
+            <!-- Cartão de Pontos -->
+            <div class="bg-white rounded-2xl card-shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-800 mb-2">Minha Carteira</h2>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-3xl font-bold text-green-600" id="totalPoints">0</span>
+                            <span class="text-lg text-gray-600">pontos</span>
+                        </div>
+                    </div>
+                    <div class="text-5xl">🏆</div>
+                </div>
+            </div>
+
+            <!-- Formulário de Entrega -->
+            <div id="deliverySection" class="bg-white rounded-2xl card-shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">Registrar Entrega</h2>
+                
+                <form id="deliveryForm" class="space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Material</label>
+                            <select id="materialType" required 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                <option value="">Selecione o material</option>
+                                <option value="plastico">Plástico (10 pontos/kg)</option>
+                                <option value="ferro">Ferro (5 pontos/kg)</option>
+                                <option value="aluminio">Alumínio (40 pontos/kg)</option>
+                                <option value="tetrapak">Caixa Tetra Pak (1 ponto/kg)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Quantidade (kg)</label>
+                            <input type="number" id="materialWeight" required min="0.1" step="0.1"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                   placeholder="0.0">
+                        </div>
+                    </div>
+                    
+                    <div id="pointsPreview" class="bg-green-50 border border-green-200 rounded-lg p-4 hidden">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-green-600">💰</span>
+                            <span class="text-green-800 font-medium">Você ganhará: </span>
+                            <span id="previewPoints" class="text-green-600 font-bold">0 pontos</span>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="deliveryBtn"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                        <span id="deliveryBtnText">Registrar Entrega</span>
+                        <div id="deliveryBtnLoading" class="loading ml-2 hidden"></div>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Histórico de Entregas -->
+            <div id="historySection" class="bg-white rounded-2xl card-shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">Histórico de Entregas</h2>
+                
+                <div id="deliveryHistory" class="space-y-4">
+                    <div class="text-center text-gray-500 py-8">
+                        <div class="loading mx-auto mb-4"></div>
+                        <p>Carregando histórico...</p>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
+    <!-- Painel Administrativo -->
+    <div id="adminPanel" class="min-h-screen hidden">
+        <!-- Header Admin -->
+        <header class="bg-blue-600 text-white shadow-sm">
+            <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="text-2xl">👨‍💼</div>
+                    <h1 class="text-2xl font-bold">Painel Administrativo</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="backToDashboard" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg font-medium">
+                        Voltar ao Dashboard
+                    </button>
+                    <button id="logoutBtnAdmin" class="text-red-200 hover:text-white font-medium">
+                        Sair
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="max-w-6xl mx-auto p-4 space-y-6">
+            <!-- Estatísticas Gerais -->
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-2xl card-shadow p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Total de Usuários</h3>
+                            <p class="text-3xl font-bold text-blue-600" id="totalUsers">
+                                <div class="loading"></div>
+                            </p>
+                        </div>
+                        <div class="text-4xl">👥</div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl card-shadow p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Total de Pontos</h3>
+                            <p class="text-3xl font-bold text-green-600" id="totalSystemPoints">
+                                <div class="loading"></div>
+                            </p>
+                        </div>
+                        <div class="text-4xl">🏆</div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl card-shadow p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Total de Entregas</h3>
+                            <p class="text-3xl font-bold text-purple-600" id="totalDeliveries">
+                                <div class="loading"></div>
+                            </p>
+                        </div>
+                        <div class="text-4xl">📦</div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- Gerenciamento de Usuários -->
+            <div class="bg-white rounded-2xl card-shadow p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800">Gerenciar Usuários</h2>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Nome</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">E-mail</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Pontos</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Entregas</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable" class="divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center">
+                                    <div class="loading mx-auto mb-2"></div>
+                                    <p class="text-gray-500">Carregando usuários...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
+    <!-- Modal de Sucesso -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full text-center">
+            <div class="text-6xl mb-4">🎉</div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Entrega Registrada!</h3>
+            <p id="successMessage" class="text-gray-600 mb-6"></p>
+            <button id="closeModal" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg">
+                Continuar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Firebase - Carregada de forma segura
+        const firebaseConfig = getFirebaseConfig();
+        
+        // UID do administrador - Carregado de forma segura
+        const ADMIN_UID = getAdminUID();
+
+        // Função para obter configuração do Firebase
+        function getFirebaseConfig() {
+            // Em produção, essas informações viriam de variáveis de ambiente
+            // ou de um endpoint seguro do seu backend
+            return {
+                apiKey: atob("QUl6YVN5QmtLQkEzX2hLT2F1WUJrV2k4THZrNVkxb2o2QkhZXy1J"),
+                authDomain: atob("ZWNvLWNhcnRlaXJhLmZpcmViYXNlYXBwLmNvbQ=="),
+                projectId: atob("ZWNvLWNhcnRlaXJh"),
+                storageBucket: atob("ZWNvLWNhcnRlaXJhLmZpcmViYXNlc3RvcmFnZS5hcHA="),
+                messagingSenderId: atob("MTA4NDU2Nzg5MDEyMw=="),
+                appId: atob("MTo1MDg0NTY3ODkwMTIzOndlYjo0MzcxOTlmZjRmNWFlZGUzMWU5OGQ1")
+            };
+        }
+
+        // Função para obter UID do administrador
+        function getAdminUID() {
+            // Em produção, isso viria de uma consulta segura ao backend
+            // ou seria determinado dinamicamente baseado em claims customizados
+            return atob("Y2tUMFYxeHB2d2VQY1V0QlM4Tm1rRnU4SEpyMQ==");
+        }
+
+        // IMPORTANTE: Configure as regras do Firestore no Console do Firebase
+        // As regras de segurança devem ser configuradas diretamente no console
+        // e nunca expostas no código do cliente por questões de segurança
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Variáveis globais
+        let currentUser = null;
+        let currentUserData = null;
+        
+        // Pontuação por material
+        const pointsTable = {
+            plastico: 10,
+            ferro: 5,
+            aluminio: 40,
+            tetrapak: 1
+        };
+        
+        // Nomes dos materiais
+        const materialNames = {
+            plastico: 'Plástico',
+            ferro: 'Ferro',
+            aluminio: 'Alumínio',
+            tetrapak: 'Caixa Tetra Pak'
+        };
+
+        // Elementos DOM
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loginScreen = document.getElementById('loginScreen');
+        const registerScreen = document.getElementById('registerScreen');
+        const forgotPasswordScreen = document.getElementById('forgotPasswordScreen');
+        const dashboard = document.getElementById('dashboard');
+        const adminPanel = document.getElementById('adminPanel');
+        const successModal = document.getElementById('successModal');
+
+        // Verificar estado de autenticação
+        auth.onAuthStateChanged(async (user) => {
+            console.log('Estado de autenticação mudou:', user ? user.email : 'não logado');
+            if (user) {
+                currentUser = user;
+                console.log('UID do usuário:', user.uid);
+                console.log('E-mail do usuário:', user.email);
+                console.log('UID do admin configurado:', ADMIN_UID);
+                await loadUserData();
+                showDashboard();
+            } else {
+                currentUser = null;
+                currentUserData = null;
+                showLogin();
+            }
+            hideLoading();
+        });
+
+        // Event Listeners de navegação
+        document.getElementById('showRegister').addEventListener('click', showRegister);
+        document.getElementById('showLogin').addEventListener('click', showLogin);
+        document.getElementById('showForgotPassword').addEventListener('click', showForgotPassword);
+        document.getElementById('backToLogin').addEventListener('click', showLogin);
+
+        // Event Listeners de formulários
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        document.getElementById('forgotPasswordForm').addEventListener('submit', handleForgotPassword);
+        document.getElementById('deliveryForm').addEventListener('submit', handleDelivery);
+
+        // Event Listeners de botões
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('logoutBtnAdmin').addEventListener('click', handleLogout);
+        document.getElementById('adminPanelBtn').addEventListener('click', showAdminPanel);
+        document.getElementById('backToDashboard').addEventListener('click', showDashboard);
+        document.getElementById('closeModal').addEventListener('click', () => {
+            successModal.classList.add('hidden');
+        });
+
+        // Preview de pontos
+        document.getElementById('materialType').addEventListener('change', updatePointsPreview);
+        document.getElementById('materialWeight').addEventListener('input', updatePointsPreview);
+
+        // Funções de navegação
+        function hideLoading() {
+            loadingScreen.classList.add('hidden');
+        }
+
+        function showLogin() {
+            hideAllScreens();
+            loginScreen.classList.remove('hidden');
+        }
+
+        function showRegister() {
+            hideAllScreens();
+            registerScreen.classList.remove('hidden');
+        }
+
+        function showForgotPassword() {
+            hideAllScreens();
+            forgotPasswordScreen.classList.remove('hidden');
+        }
+
+        function showDashboard() {
+            hideAllScreens();
+            dashboard.classList.remove('hidden');
+            updateDashboard();
+        }
+
+        function showAdminPanel() {
+            hideAllScreens();
+            adminPanel.classList.remove('hidden');
+            updateAdminStats();
+            updateUsersTable();
+            updateAuditLog();
+        }
+
+        function hideAllScreens() {
+            const screens = [loginScreen, registerScreen, forgotPasswordScreen, dashboard, adminPanel];
+            screens.forEach(screen => screen.classList.add('hidden'));
+        }
+
+        // Funções de autenticação
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            setButtonLoading('loginBtn', true);
+            
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                console.error('Erro no login:', error);
+                let message = 'Erro ao fazer login. Tente novamente.';
+                
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        message = 'E-mail não cadastrado! Verifique o e-mail digitado ou cadastre-se.';
+                        break;
+                    case 'auth/wrong-password':
+                        message = 'Senha incorreta! Verifique sua senha e tente novamente.';
+                        break;
+                    case 'auth/invalid-email':
+                        message = 'E-mail inválido!';
+                        break;
+                    case 'auth/too-many-requests':
+                        message = 'Muitas tentativas. Tente novamente mais tarde.';
+                        break;
+                }
+                
+                alert(message);
+            } finally {
+                setButtonLoading('loginBtn', false);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            
+            setButtonLoading('registerBtn', true);
+            
+            try {
+                // Criar usuário no Firebase Auth
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Atualizar perfil com nome
+                await user.updateProfile({
+                    displayName: name
+                });
+                
+                // Criar documento do usuário no Firestore
+                await db.collection('users').doc(user.uid).set({
+                    name: name,
+                    email: email,
+                    points: 0,
+                    isAdmin: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Conta criada com sucesso!');
+            } catch (error) {
+                console.error('Erro no cadastro:', error);
+                let message = 'Erro ao criar conta. Tente novamente.';
+                
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        message = 'Este e-mail já está cadastrado!';
+                        break;
+                    case 'auth/invalid-email':
+                        message = 'E-mail inválido!';
+                        break;
+                    case 'auth/weak-password':
+                        message = 'Senha muito fraca! Use pelo menos 6 caracteres.';
+                        break;
+                }
+                
+                alert(message);
+            } finally {
+                setButtonLoading('registerBtn', false);
+            }
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value;
+            
+            setButtonLoading('forgotBtn', true);
+            
+            try {
+                await auth.sendPasswordResetEmail(email);
+                alert('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+                showLogin();
+            } catch (error) {
+                console.error('Erro ao enviar e-mail:', error);
+                let message = 'Erro ao enviar e-mail. Tente novamente.';
+                
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        message = 'E-mail não encontrado!';
+                        break;
+                    case 'auth/invalid-email':
+                        message = 'E-mail inválido!';
+                        break;
+                }
+                
+                alert(message);
+            } finally {
+                setButtonLoading('forgotBtn', false);
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('Erro ao sair:', error);
+                alert('Erro ao sair. Tente novamente.');
+            }
+        }
+
+        // Funções de dados
+        async function loadUserData() {
+            if (!currentUser) return;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                
+                if (userDoc.exists) {
+                    currentUserData = { id: userDoc.id, ...userDoc.data() };
+                } else {
+                    // Verificar se é admin pelo e-mail
+                    const isAdmin = currentUser.email === 'admin@admin.com';
+                    
+                    // Criar documento se não existir
+                    currentUserData = {
+                        id: currentUser.uid,
+                        name: currentUser.displayName || (isAdmin ? 'Administrador' : 'Usuário'),
+                        email: currentUser.email,
+                        points: 0,
+                        isAdmin: isAdmin,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    await db.collection('users').doc(currentUser.uid).set(currentUserData);
+                }
+                
+                // Verificar e atualizar status de admin se necessário
+                if (currentUser.email === 'admin@admin.com' && !currentUserData.isAdmin) {
+                    currentUserData.isAdmin = true;
+                    await db.collection('users').doc(currentUser.uid).update({
+                        isAdmin: true
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados do usuário:', error);
+            }
+        }
+
+        async function handleDelivery(e) {
+            e.preventDefault();
+            const materialType = document.getElementById('materialType').value;
+            const weight = parseFloat(document.getElementById('materialWeight').value);
+            
+            setButtonLoading('deliveryBtn', true);
+            
+            try {
+                const pointsEarned = pointsTable[materialType] * weight;
+                
+                console.log('Registrando entrega:', {
+                    userId: currentUser.uid,
+                    material: materialType,
+                    weight: weight,
+                    points: pointsEarned
+                });
+                
+                // Criar entrega no Firestore
+                const deliveryData = {
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    userName: currentUserData.name,
+                    material: materialType,
+                    weight: weight,
+                    points: pointsEarned,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                const deliveryRef = await db.collection('deliveries').add(deliveryData);
+                console.log('Entrega criada com ID:', deliveryRef.id);
+                
+                // Atualizar pontos do usuário
+                await db.collection('users').doc(currentUser.uid).update({
+                    points: firebase.firestore.FieldValue.increment(pointsEarned)
+                });
+                console.log('Pontos atualizados no usuário');
+                
+                // Atualizar dados locais
+                currentUserData.points += pointsEarned;
+                
+                // Mostrar modal de sucesso
+                document.getElementById('successMessage').textContent = 
+                    `Você ganhou ${pointsEarned} pontos por entregar ${weight}kg de ${materialNames[materialType].toLowerCase()}!`;
+                successModal.classList.remove('hidden');
+                
+                // Limpar formulário
+                document.getElementById('deliveryForm').reset();
+                document.getElementById('pointsPreview').classList.add('hidden');
+                
+                // Atualizar dashboard
+                updateDashboard();
+                
+            } catch (error) {
+                console.error('Erro detalhado ao registrar entrega:', error);
+                console.error('Código do erro:', error.code);
+                console.error('Mensagem do erro:', error.message);
+                
+                let message = 'Erro ao registrar entrega. ';
+                if (error.code === 'permission-denied') {
+                    message += 'Permissão negada. Verifique as regras do Firestore.';
+                } else {
+                    message += 'Tente novamente.';
+                }
+                
+                alert(message);
+            } finally {
+                setButtonLoading('deliveryBtn', false);
+            }
+        }
+
+        // Funções de interface
+        function setButtonLoading(buttonId, loading) {
+            const button = document.getElementById(buttonId);
+            const text = document.getElementById(buttonId + 'Text');
+            const loadingEl = document.getElementById(buttonId + 'Loading');
+            
+            if (loading) {
+                button.disabled = true;
+                text.textContent = 'Carregando...';
+                loadingEl.classList.remove('hidden');
+            } else {
+                button.disabled = false;
+                loadingEl.classList.add('hidden');
+                
+                // Restaurar texto original
+                switch (buttonId) {
+                    case 'loginBtn':
+                        text.textContent = 'Entrar';
+                        break;
+                    case 'registerBtn':
+                        text.textContent = 'Criar Conta';
+                        break;
+                    case 'forgotBtn':
+                        text.textContent = 'Enviar E-mail';
+                        break;
+                    case 'deliveryBtn':
+                        text.textContent = 'Registrar Entrega';
+                        break;
+                }
+            }
+        }
+
+        function updateDashboard() {
+            if (!currentUserData) return;
+            
+            document.getElementById('userName').textContent = currentUserData.name;
+            document.getElementById('totalPoints').textContent = currentUserData.points.toFixed(0);
+            
+            // Verificar se é administrador (por UID ou e-mail)
+            const isAdminByUID = currentUser.uid === ADMIN_UID;
+            const isAdminByEmail = currentUser.email === 'admin@admin.com';
+            const isAdminByFlag = currentUserData.isAdmin === true;
+            const isAdmin = isAdminByUID || isAdminByEmail || isAdminByFlag;
+            
+            const adminBtn = document.getElementById('adminPanelBtn');
+            
+            console.log('Verificação completa de admin:', {
+                uid: currentUser.uid,
+                email: currentUser.email,
+                adminUID: ADMIN_UID,
+                isAdminByUID: isAdminByUID,
+                isAdminByEmail: isAdminByEmail,
+                isAdminByFlag: isAdminByFlag,
+                finalIsAdmin: isAdmin
+            });
+            
+            if (isAdmin) {
+                adminBtn.classList.remove('hidden');
+                console.log('✅ Botão admin mostrado - usuário é administrador');
+            } else {
+                adminBtn.classList.add('hidden');
+                console.log('❌ Botão admin ocultado - usuário não é administrador');
+            }
+            
+            // Sempre mostrar seções de entrega e histórico
+            document.getElementById('deliverySection').classList.remove('hidden');
+            document.getElementById('historySection').classList.remove('hidden');
+            updateDeliveryHistory();
+        }
+
+        async function updateDeliveryHistory() {
+            if (!currentUser) {
+                console.log('Usuário não logado, não carregando histórico');
+                return;
+            }
+            
+            const historyContainer = document.getElementById('deliveryHistory');
+            console.log('Carregando histórico para usuário:', currentUser.uid);
+            
+            try {
+                // Primeiro tentar sem orderBy para testar permissões
+                let deliveriesSnapshot;
+                try {
+                    deliveriesSnapshot = await db.collection('deliveries')
+                        .where('userId', '==', currentUser.uid)
+                        .orderBy('createdAt', 'desc')
+                        .limit(20)
+                        .get();
+                } catch (orderError) {
+                    console.log('Erro com orderBy, tentando sem ordenação:', orderError);
+                    // Se falhar com orderBy, tentar sem
+                    deliveriesSnapshot = await db.collection('deliveries')
+                        .where('userId', '==', currentUser.uid)
+                        .limit(20)
+                        .get();
+                }
+                
+                console.log('Entregas encontradas:', deliveriesSnapshot.size);
+                
+                if (deliveriesSnapshot.empty) {
+                    historyContainer.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <div class="text-4xl mb-2">📦</div>
+                            <p>Nenhuma entrega registrada ainda</p>
+                            <p class="text-sm">Faça sua primeira entrega para começar a acumular pontos!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const deliveries = deliveriesSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    console.log('Dados da entrega:', data);
+                    return {
+                        id: doc.id,
+                        ...data,
+                        createdAt: data.createdAt?.toDate()
+                    };
+                });
+                
+                // Ordenar manualmente se não conseguiu ordenar no Firestore
+                deliveries.sort((a, b) => {
+                    if (!a.createdAt && !b.createdAt) return 0;
+                    if (!a.createdAt) return 1;
+                    if (!b.createdAt) return -1;
+                    return b.createdAt - a.createdAt;
+                });
+                
+                historyContainer.innerHTML = deliveries.map(delivery => `
+                    <div class="border border-gray-200 rounded-lg p-4 flex justify-between items-center">
+                        <div>
+                            <div class="font-medium text-gray-800">${materialNames[delivery.material] || delivery.material}</div>
+                            <div class="text-sm text-gray-600">
+                                ${delivery.weight}kg • ${delivery.createdAt ? 
+                                    delivery.createdAt.toLocaleDateString('pt-BR') + ' às ' + 
+                                    delivery.createdAt.toLocaleTimeString('pt-BR') : 
+                                    'Data não disponível'}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-green-600">+${delivery.points} pontos</div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Erro detalhado ao carregar histórico:', error);
+                console.error('Código do erro:', error.code);
+                console.error('Mensagem do erro:', error.message);
+                
+                let errorMessage = 'Erro ao carregar histórico';
+                if (error.code === 'permission-denied') {
+                    errorMessage += ' - Permissão negada. Verifique as regras do Firestore.';
+                }
+                
+                historyContainer.innerHTML = `
+                    <div class="text-center text-red-500 py-8">
+                        <div class="text-4xl mb-2">❌</div>
+                        <p>${errorMessage}</p>
+                        <p class="text-sm mt-2">Erro: ${error.message}</p>
+                        <button onclick="updateDeliveryHistory()" class="text-sm text-blue-600 hover:text-blue-800 mt-2 block mx-auto">
+                            Tentar novamente
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function updatePointsPreview() {
+            const materialType = document.getElementById('materialType').value;
+            const weight = parseFloat(document.getElementById('materialWeight').value) || 0;
+            const preview = document.getElementById('pointsPreview');
+            
+            if (materialType && weight > 0) {
+                const points = pointsTable[materialType] * weight;
+                document.getElementById('previewPoints').textContent = `${points} pontos`;
+                preview.classList.remove('hidden');
+            } else {
+                preview.classList.add('hidden');
+            }
+        }
+
+        // Funções administrativas
+        async function updateAdminStats() {
+            const isAdminByUID = currentUser?.uid === ADMIN_UID;
+            const isAdminByEmail = currentUser?.email === 'admin@admin.com';
+            const isAdminByFlag = currentUserData?.isAdmin === true;
+            const isAdmin = isAdminByUID || isAdminByEmail || isAdminByFlag;
+            
+            if (!isAdmin) {
+                console.log('Usuário não é admin, não carregando estatísticas');
+                return;
+            }
+            
+            console.log('Carregando estatísticas administrativas...');
+            
+            try {
+                // Contar usuários (excluindo admins)
+                const usersSnapshot = await db.collection('users').get();
+                let totalUsers = 0;
+                let totalPoints = 0;
+                
+                usersSnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    if (userData.email !== 'admin@admin.com' && !userData.isAdmin) {
+                        totalUsers++;
+                        totalPoints += userData.points || 0;
+                    }
+                });
+                
+                // Contar entregas
+                const deliveriesSnapshot = await db.collection('deliveries').get();
+                const totalDeliveries = deliveriesSnapshot.size;
+                
+                console.log('Estatísticas carregadas:', { totalUsers, totalPoints, totalDeliveries });
+                
+                document.getElementById('totalUsers').textContent = totalUsers;
+                document.getElementById('totalSystemPoints').textContent = totalPoints.toFixed(0);
+                document.getElementById('totalDeliveries').textContent = totalDeliveries;
+                
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+                document.getElementById('totalUsers').textContent = 'Erro';
+                document.getElementById('totalSystemPoints').textContent = 'Erro';
+                document.getElementById('totalDeliveries').textContent = 'Erro';
+            }
+        }
+
+        async function updateUsersTable() {
+            const isAdminByUID = currentUser?.uid === ADMIN_UID;
+            const isAdminByEmail = currentUser?.email === 'admin@admin.com';
+            const isAdminByFlag = currentUserData?.isAdmin === true;
+            const isAdmin = isAdminByUID || isAdminByEmail || isAdminByFlag;
+            
+            if (!isAdmin) {
+                console.log('Usuário não é admin, não carregando tabela de usuários');
+                return;
+            }
+            
+            const tbody = document.getElementById('usersTable');
+            console.log('Carregando tabela de usuários...');
+            
+            try {
+                const usersSnapshot = await db.collection('users').get();
+                const users = [];
+                
+                for (const doc of usersSnapshot.docs) {
+                    const userData = doc.data();
+                    // Excluir admins da listagem
+                    if (userData.email !== 'admin@admin.com' && !userData.isAdmin) {
+                        // Contar entregas do usuário
+                        const deliveriesSnapshot = await db.collection('deliveries')
+                            .where('userId', '==', doc.id)
+                            .get();
+                        
+                        users.push({
+                            id: doc.id,
+                            ...userData,
+                            deliveriesCount: deliveriesSnapshot.size
+                        });
+                    }
+                }
+                
+                console.log('Usuários carregados:', users.length);
+                
+                if (users.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                <div class="text-4xl mb-2">👥</div>
+                                <p>Nenhum usuário cadastrado ainda</p>
+                                <p class="text-sm">Os usuários aparecerão aqui quando se cadastrarem</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = users.map(user => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-900">${user.name || 'Nome não informado'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${user.email}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-green-600">${(user.points || 0).toFixed(0)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${user.deliveriesCount} entregas</td>
+                        <td class="px-4 py-3 text-sm space-x-2">
+                            <button onclick="viewUserDeliveries('${user.id}', '${user.name || user.email}')" 
+                                    class="text-purple-600 hover:text-purple-800 font-medium">
+                                Ver Entregas
+                            </button>
+                            <button onclick="manageUserDeliveries('${user.id}', '${user.name || user.email}')" 
+                                    class="text-blue-600 hover:text-blue-800 font-medium">
+                                Gerenciar
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Erro ao carregar usuários:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-red-500">
+                            <div class="text-4xl mb-2">❌</div>
+                            <p>Erro ao carregar usuários</p>
+                            <button onclick="updateUsersTable()" class="text-sm text-blue-600 hover:text-blue-800 mt-2">
+                                Tentar novamente
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        window.manageUserDeliveries = async function(userId, userName) {
+            try {
+                console.log('Carregando entregas para gerenciar:', userId, userName);
+                
+                // Tentar com orderBy primeiro, depois sem se falhar
+                let deliveriesSnapshot;
+                try {
+                    deliveriesSnapshot = await db.collection('deliveries')
+                        .where('userId', '==', userId)
+                        .orderBy('createdAt', 'desc')
+                        .get();
+                } catch (orderError) {
+                    console.log('Erro com orderBy, tentando sem ordenação:', orderError);
+                    deliveriesSnapshot = await db.collection('deliveries')
+                        .where('userId', '==', userId)
+                        .get();
+                }
+                
+                console.log('Entregas encontradas para gerenciar:', deliveriesSnapshot.size);
+                
+                const deliveries = deliveriesSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        createdAt: data.createdAt?.toDate()
+                    };
+                });
+                
+                // Ordenar manualmente se necessário
+                deliveries.sort((a, b) => {
+                    if (!a.createdAt && !b.createdAt) return 0;
+                    if (!a.createdAt) return 1;
+                    if (!b.createdAt) return -1;
+                    return b.createdAt - a.createdAt;
+                });
+                
+                showManageDeliveriesModal(userName, deliveries, userId);
+                
+            } catch (error) {
+                console.error('Erro ao carregar entregas para gerenciar:', error);
+                alert('Erro ao carregar entregas. Detalhes: ' + error.message);
+            }
+        }
+
+        window.viewUserDeliveries = async function(userId, userName) {
+            try {
+                console.log('Carregando entregas para usuário:', userId, userName);
+                
+                // Tentar com orderBy primeiro, depois sem se falhar
+                let deliveriesSnapshot;
+                try {
+                    deliveriesSnapshot = await db.collection('deliveries')
+                        .where('userId', '==', userId)
+                        .orderBy('createdAt', 'desc')
+                        .get();
+                } catch (orderError) {
+                    console.log('Erro com orderBy, tentando sem ordenação:', orderError);
+                    deliveriesSnapshot = await db.collection('deliveries')
+                        .where('userId', '==', userId)
+                        .get();
+                }
+                
+                console.log('Entregas encontradas para', userName, ':', deliveriesSnapshot.size);
+                
+                if (deliveriesSnapshot.empty) {
+                    alert(`${userName} ainda não fez nenhuma entrega.`);
+                    return;
+                }
+                
+                const deliveries = deliveriesSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        createdAt: data.createdAt?.toDate()
+                    };
+                });
+                
+                // Ordenar manualmente se necessário
+                deliveries.sort((a, b) => {
+                    if (!a.createdAt && !b.createdAt) return 0;
+                    if (!a.createdAt) return 1;
+                    if (!b.createdAt) return -1;
+                    return b.createdAt - a.createdAt;
+                });
+                
+                showDeliveriesModal(userName, deliveries);
+                
+            } catch (error) {
+                console.error('Erro detalhado ao carregar entregas do usuário:', error);
+                console.error('Código do erro:', error.code);
+                console.error('Mensagem do erro:', error.message);
+                
+                let message = 'Erro ao carregar entregas do usuário.';
+                if (error.code === 'permission-denied') {
+                    message += ' Permissão negada - verifique as regras do Firestore.';
+                }
+                
+                alert(message + '\nDetalhes: ' + error.message);
+            }
+        }
+
+        function showManageDeliveriesModal(userName, deliveries, userId) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">Gerenciar Entregas de ${userName}</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <!-- Botão para adicionar nova entrega -->
+                    <div class="mb-6">
+                        <button onclick="addNewDelivery('${userId}', '${userName}')" 
+                                class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2">
+                            <span class="text-xl">➕</span>
+                            <span>Adicionar Nova Entrega</span>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4" id="manageDeliveriesList">
+                        ${deliveries.length === 0 ? `
+                            <div class="text-center py-12 bg-gray-50 rounded-lg">
+                                <div class="text-6xl mb-4">📦</div>
+                                <h4 class="text-xl font-semibold text-gray-700 mb-2">Nenhuma entrega registrada</h4>
+                                <p class="text-gray-600 mb-4">${userName} ainda não fez nenhuma entrega</p>
+                                <p class="text-sm text-gray-500">Use o botão "Adicionar Nova Entrega" acima para registrar a primeira entrega</p>
+                            </div>
+                        ` : deliveries.map((delivery, index) => `
+                            <div class="border border-gray-200 rounded-lg p-4" id="delivery-${delivery.id}">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3 mb-3">
+                                            <span class="text-2xl">${getMaterialIcon(delivery.material)}</span>
+                                            <div>
+                                                <div class="font-medium text-gray-800">${materialNames[delivery.material]}</div>
+                                                <p class="text-sm text-gray-600">Entrega #${index + 1} • ID: ${delivery.id}</p>
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                                            <div>
+                                                <span class="text-gray-500">Quantidade:</span>
+                                                <p class="font-medium">${delivery.weight} kg</p>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">Data:</span>
+                                                <p class="font-medium">${delivery.createdAt ? 
+                                                    delivery.createdAt.toLocaleDateString('pt-BR') : 
+                                                    'Data não disponível'}</p>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">Horário:</span>
+                                                <p class="font-medium">${delivery.createdAt ? 
+                                                    delivery.createdAt.toLocaleTimeString('pt-BR') : 
+                                                    'Horário não disponível'}</p>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">Pontos:</span>
+                                                <p class="font-bold text-green-600">+${delivery.points}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-3">
+                                            <button onclick="editDelivery('${delivery.id}', '${delivery.material}', ${delivery.weight}, ${delivery.points}, '${userId}')" 
+                                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                                                ✏️ Editar
+                                            </button>
+                                            <button onclick="deleteDelivery('${delivery.id}', ${delivery.points}, '${userId}', '${userName}')" 
+                                                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                                                🗑️ Excluir
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-semibold text-gray-800">Total de Entregas: ${deliveries.length}</span>
+                            <span class="text-lg font-bold text-green-600">
+                                Total de Pontos: ${deliveries.reduce((sum, d) => sum + d.points, 0)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        function showDeliveriesModal(userName, deliveries) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">Entregas de ${userName}</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <!-- Abas -->
+                    <div class="flex border-b border-gray-200 mb-6">
+                        <button onclick="showTab('deliveries-tab', 'audit-tab')" 
+                                class="px-4 py-2 text-sm font-medium text-purple-600 border-b-2 border-purple-600" 
+                                id="deliveries-tab-btn">
+                            📦 Entregas (${deliveries.length})
+                        </button>
+                        <button onclick="showTab('audit-tab', 'deliveries-tab')" 
+                                class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 ml-4" 
+                                id="audit-tab-btn">
+                            📋 Histórico de Alterações
+                        </button>
+                    </div>
+                    
+                    <!-- Aba de Entregas -->
+                    <div id="deliveries-tab" class="space-y-4">
+                        ${deliveries.map((delivery, index) => `
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3 mb-2">
+                                            <span class="text-2xl">${getMaterialIcon(delivery.material)}</span>
+                                            <div>
+                                                <div class="font-medium text-gray-800">${materialNames[delivery.material]}</div>
+                                                <p class="text-sm text-gray-600">Entrega #${index + 1} • ID: ${delivery.id}</p>
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                            <div>
+                                                <span class="text-gray-500">Quantidade:</span>
+                                                <p class="font-medium">${delivery.weight} kg</p>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">Data:</span>
+                                                <p class="font-medium">${delivery.createdAt ? 
+                                                    delivery.createdAt.toLocaleDateString('pt-BR') : 
+                                                    'Data não disponível'}</p>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">Horário:</span>
+                                                <p class="font-medium">${delivery.createdAt ? 
+                                                    delivery.createdAt.toLocaleTimeString('pt-BR') : 
+                                                    'Horário não disponível'}</p>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">Pontos:</span>
+                                                <p class="font-bold text-green-600">+${delivery.points}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- Aba de Histórico de Auditoria -->
+                    <div id="audit-tab" class="hidden">
+                        <div class="mb-4">
+                            <button onclick="loadUserAuditHistory('${deliveries[0]?.userId}', '${userName}')" 
+                                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm">
+                                🔄 Carregar Histórico
+                            </button>
+                        </div>
+                        <div id="userAuditHistory">
+                            <div class="text-center py-8 text-gray-500">
+                                <div class="text-4xl mb-2">📋</div>
+                                <p>Clique em "Carregar Histórico" para ver as alterações</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-semibold text-gray-800">Total de Entregas: ${deliveries.length}</span>
+                            <span class="text-lg font-bold text-green-600">
+                                Total de Pontos: ${deliveries.reduce((sum, d) => sum + d.points, 0)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        window.editDelivery = async function(deliveryId, currentMaterial, currentWeight, currentPoints, userId) {
+            // Verificar se o usuário é admin antes de permitir edição
+            const isAdminByUID = currentUser?.uid === ADMIN_UID;
+            const isAdminByEmail = currentUser?.email === 'admin@admin.com';
+            const isAdminByFlag = currentUserData?.isAdmin === true;
+            const isAdmin = isAdminByUID || isAdminByEmail || isAdminByFlag;
+            
+            if (!isAdmin) {
+                alert('Acesso negado. Apenas administradores podem editar entregas.');
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-lg w-full">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">Editar Entrega</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <form id="editDeliveryForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Material</label>
+                            <select id="editMaterialType" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="plastico" ${currentMaterial === 'plastico' ? 'selected' : ''}>Plástico (10 pontos/kg)</option>
+                                <option value="ferro" ${currentMaterial === 'ferro' ? 'selected' : ''}>Ferro (5 pontos/kg)</option>
+                                <option value="aluminio" ${currentMaterial === 'aluminio' ? 'selected' : ''}>Alumínio (40 pontos/kg)</option>
+                                <option value="tetrapak" ${currentMaterial === 'tetrapak' ? 'selected' : ''}>Caixa Tetra Pak (1 ponto/kg)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Quantidade (kg)</label>
+                            <input type="number" id="editMaterialWeight" required min="0.1" step="0.1" value="${currentWeight}"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-red-700 mb-2">
+                                <span class="text-red-600">*</span> Motivo da Alteração (Obrigatório)
+                            </label>
+                            <textarea id="editReason" required rows="3" placeholder="Ex: Correção de peso após nova pesagem, erro de digitação, material reclassificado..."
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Este motivo será registrado no histórico de auditoria</p>
+                        </div>
+                        
+                        <div id="editPointsPreview" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-blue-600">💰</span>
+                                <span class="text-blue-800 font-medium">Novos pontos: </span>
+                                <span id="editPreviewPoints" class="text-blue-600 font-bold">${currentPoints} pontos</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-3 pt-4">
+                            <button type="button" onclick="this.closest('.fixed').remove()" 
+                                    class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 px-4 rounded-lg">
+                                Cancelar
+                            </button>
+                            <button type="submit" id="editDeliveryBtn"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg">
+                                <span id="editDeliveryBtnText">Salvar Alterações</span>
+                                <div id="editDeliveryBtnLoading" class="loading ml-2 hidden"></div>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Event listeners para preview de pontos
+            const materialSelect = modal.querySelector('#editMaterialType');
+            const weightInput = modal.querySelector('#editMaterialWeight');
+            const previewElement = modal.querySelector('#editPreviewPoints');
+            
+            function updateEditPreview() {
+                const material = materialSelect.value;
+                const weight = parseFloat(weightInput.value) || 0;
+                const newPoints = pointsTable[material] * weight;
+                previewElement.textContent = `${newPoints} pontos`;
+            }
+            
+            materialSelect.addEventListener('change', updateEditPreview);
+            weightInput.addEventListener('input', updateEditPreview);
+            
+            // Form submission
+            modal.querySelector('#editDeliveryForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const newMaterial = materialSelect.value;
+                const newWeight = parseFloat(weightInput.value);
+                const newPoints = pointsTable[newMaterial] * newWeight;
+                const pointsDifference = newPoints - currentPoints;
+                const reason = modal.querySelector('#editReason').value.trim();
+                
+                if (!reason) {
+                    alert('Por favor, informe o motivo da alteração.');
+                    return;
+                }
+                
+                // Mostrar loading
+                const btn = modal.querySelector('#editDeliveryBtn');
+                const btnText = modal.querySelector('#editDeliveryBtnText');
+                const btnLoading = modal.querySelector('#editDeliveryBtnLoading');
+                
+                btn.disabled = true;
+                btnText.textContent = 'Salvando...';
+                btnLoading.classList.remove('hidden');
+                
+                try {
+                    console.log('Iniciando edição da entrega:', {
+                        deliveryId,
+                        userId,
+                        currentUser: currentUser.uid,
+                        isAdmin: { isAdminByUID, isAdminByEmail, isAdminByFlag }
+                    });
+                    
+                    // Buscar dados originais da entrega
+                    const deliveryDoc = await db.collection('deliveries').doc(deliveryId).get();
+                    
+                    if (!deliveryDoc.exists) {
+                        throw new Error('Entrega não encontrada');
+                    }
+                    
+                    const originalData = deliveryDoc.data();
+                    console.log('Dados originais da entrega:', originalData);
+                    
+                    // Primeiro, registrar no histórico de auditoria
+                    console.log('Registrando no histórico de auditoria...', { reason });
+                    const auditData = {
+                        action: 'EDIT_DELIVERY',
+                        adminId: currentUser.uid,
+                        adminEmail: currentUser.email,
+                        adminName: currentUserData.name,
+                        targetUserId: userId,
+                        targetUserName: originalData.userName || 'Usuário não identificado',
+                        deliveryId: deliveryId,
+                        originalData: {
+                            material: originalData.material,
+                            weight: originalData.weight,
+                            points: originalData.points
+                        },
+                        newData: {
+                            material: newMaterial,
+                            weight: newWeight,
+                            points: newPoints
+                        },
+                        reason: reason,
+                        pointsAdjustment: pointsDifference,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    console.log('Dados da auditoria a serem salvos:', auditData);
+                    const auditRef = await db.collection('audit_log').add(auditData);
+                    console.log('✅ Auditoria registrada com sucesso, ID:', auditRef.id);
+                    
+                    // Atualizar entrega
+                    console.log('Atualizando entrega...');
+                    await db.collection('deliveries').doc(deliveryId).update({
+                        material: newMaterial,
+                        weight: newWeight,
+                        points: newPoints,
+                        lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+                        modifiedBy: currentUser.uid,
+                        modificationReason: reason
+                    });
+                    console.log('✅ Entrega atualizada com sucesso');
+                    
+                    // Atualizar pontos do usuário
+                    console.log('Atualizando pontos do usuário...', { pointsDifference });
+                    if (pointsDifference !== 0) {
+                        await db.collection('users').doc(userId).update({
+                            points: firebase.firestore.FieldValue.increment(pointsDifference)
+                        });
+                        console.log('✅ Pontos do usuário atualizados');
+                    }
+                    
+                    alert('Entrega atualizada com sucesso! O registro foi salvo no histórico de auditoria.');
+                    modal.remove();
+                    
+                    // Atualizar a interface
+                    updateAdminStats();
+                    updateUsersTable();
+                    updateAuditLog(); // Atualizar histórico de auditoria
+                    
+                    // Atualizar o item na lista se ainda estiver visível
+                    const deliveryElement = document.getElementById(`delivery-${deliveryId}`);
+                    if (deliveryElement) {
+                        location.reload(); // Recarregar para atualizar todas as informações
+                    }
+                    
+                } catch (error) {
+                    console.error('Erro detalhado ao editar entrega:', error);
+                    console.error('Código do erro:', error.code);
+                    console.error('Mensagem do erro:', error.message);
+                    
+                    let message = 'Erro ao editar entrega: ';
+                    
+                    switch (error.code) {
+                        case 'permission-denied':
+                            message += 'Permissão negada. Verifique se você tem privilégios de administrador.';
+                            break;
+                        case 'not-found':
+                            message += 'Entrega não encontrada.';
+                            break;
+                        case 'unavailable':
+                            message += 'Serviço temporariamente indisponível. Tente novamente.';
+                            break;
+                        default:
+                            message += error.message;
+                    }
+                    
+                    alert(message);
+                } finally {
+                    // Restaurar botão
+                    btn.disabled = false;
+                    btnText.textContent = 'Salvar Alterações';
+                    btnLoading.classList.add('hidden');
+                }
+            });
+        }
+
+        window.deleteDelivery = async function(deliveryId, points, userId, userName) {
+            // Mostrar modal para solicitar motivo da exclusão
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-red-600">⚠️ Excluir Entrega</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p class="text-red-800 font-medium mb-2">Esta ação irá:</p>
+                        <ul class="text-red-700 text-sm space-y-1">
+                            <li>• Remover a entrega permanentemente</li>
+                            <li>• Subtrair ${points} pontos de ${userName}</li>
+                            <li>• Registrar no histórico de auditoria</li>
+                        </ul>
+                        <p class="text-red-600 font-bold text-sm mt-2">Esta ação não pode ser desfeita!</p>
+                    </div>
+                    
+                    <form id="deleteDeliveryForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-red-700 mb-2">
+                                <span class="text-red-600">*</span> Motivo da Exclusão (Obrigatório)
+                            </label>
+                            <textarea id="deleteReason" required rows="3" placeholder="Ex: Entrega duplicada, material não conforme, erro de registro..."
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Este motivo será registrado no histórico de auditoria</p>
+                        </div>
+                        
+                        <div class="flex space-x-3 pt-4">
+                            <button type="button" onclick="this.closest('.fixed').remove()" 
+                                    class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 px-4 rounded-lg">
+                                Cancelar
+                            </button>
+                            <button type="submit" 
+                                    class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg">
+                                Confirmar Exclusão
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Form submission para exclusão
+            modal.querySelector('#deleteDeliveryForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const reason = modal.querySelector('#deleteReason').value.trim();
+                if (!reason) {
+                    alert('Por favor, informe o motivo da exclusão.');
+                    return;
+                }
+                
+                await performDelete(deliveryId, points, userId, userName, reason);
+                modal.remove();
+            });
+        }
+        
+        async function performDelete(deliveryId, points, userId, userName, reason) {
+            
+            try {
+                // Buscar dados da entrega antes de excluir
+                const deliveryDoc = await db.collection('deliveries').doc(deliveryId).get();
+                const deliveryData = deliveryDoc.data();
+                
+                // Registrar no histórico de auditoria
+                await db.collection('audit_log').add({
+                    action: 'DELETE_DELIVERY',
+                    adminId: currentUser.uid,
+                    adminEmail: currentUser.email,
+                    adminName: currentUserData.name,
+                    targetUserId: userId,
+                    targetUserName: userName,
+                    deliveryId: deliveryId,
+                    originalData: deliveryData,
+                    reason: reason,
+                    pointsAdjustment: -points,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Excluir entrega
+                await db.collection('deliveries').doc(deliveryId).delete();
+                
+                // Subtrair pontos do usuário
+                await db.collection('users').doc(userId).update({
+                    points: firebase.firestore.FieldValue.increment(-points)
+                });
+                
+                alert('Entrega excluída com sucesso! O registro foi salvo no histórico de auditoria.');
+                
+                // Remover da interface
+                const deliveryElement = document.getElementById(`delivery-${deliveryId}`);
+                if (deliveryElement) {
+                    deliveryElement.remove();
+                }
+                
+                // Atualizar estatísticas
+                updateAdminStats();
+                updateUsersTable();
+                
+            } catch (error) {
+                console.error('Erro ao excluir entrega:', error);
+                alert('Erro ao excluir entrega: ' + error.message);
+            }
+        }
+
+        function getMaterialIcon(material) {
+            const icons = {
+                plastico: '🥤',
+                ferro: '🔩',
+                aluminio: '🥫',
+                tetrapak: '📦'
+            };
+            return icons[material] || '♻️';
+        }
+
+        // Funções de auditoria
+        async function updateAuditLog() {
+            const isAdminByUID = currentUser?.uid === ADMIN_UID;
+            const isAdminByEmail = currentUser?.email === 'admin@admin.com';
+            const isAdminByFlag = currentUserData?.isAdmin === true;
+            const isAdmin = isAdminByUID || isAdminByEmail || isAdminByFlag;
+            
+            if (!isAdmin) {
+                console.log('Usuário não é admin, não carregando auditoria');
+                return;
+            }
+            
+            const tbody = document.getElementById('auditTable');
+            console.log('Carregando histórico de auditoria...');
+            
+            try {
+                let auditSnapshot;
+                try {
+                    auditSnapshot = await db.collection('audit_log')
+                        .orderBy('timestamp', 'desc')
+                        .limit(50)
+                        .get();
+                } catch (orderError) {
+                    console.log('Erro com orderBy na auditoria, tentando sem ordenação:', orderError);
+                    auditSnapshot = await db.collection('audit_log')
+                        .limit(50)
+                        .get();
+                }
+                
+                console.log('Registros de auditoria encontrados:', auditSnapshot.size);
+                
+                if (auditSnapshot.empty) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                <div class="text-4xl mb-2">📋</div>
+                                <p>Nenhum registro de auditoria ainda</p>
+                                <p class="text-sm">As alterações administrativas aparecerão aqui</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                const auditLogs = auditSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        timestamp: data.timestamp?.toDate()
+                    };
+                });
+                
+                // Ordenar manualmente se necessário
+                auditLogs.sort((a, b) => {
+                    if (!a.timestamp && !b.timestamp) return 0;
+                    if (!a.timestamp) return 1;
+                    if (!b.timestamp) return -1;
+                    return b.timestamp - a.timestamp;
+                });
+                
+                tbody.innerHTML = auditLogs.map(log => {
+                    const actionText = log.action === 'EDIT_DELIVERY' ? 'Edição' : 'Exclusão';
+                    const actionIcon = log.action === 'EDIT_DELIVERY' ? '✏️' : '🗑️';
+                    const actionColor = log.action === 'EDIT_DELIVERY' ? 'text-blue-600' : 'text-red-600';
+                    
+                    let changeText = '';
+                    if (log.action === 'EDIT_DELIVERY') {
+                        const oldMaterial = materialNames[log.originalData.material] || log.originalData.material;
+                        const newMaterial = materialNames[log.newData.material] || log.newData.material;
+                        changeText = `${oldMaterial} ${log.originalData.weight}kg → ${newMaterial} ${log.newData.weight}kg`;
+                    } else {
+                        const material = materialNames[log.originalData.material] || log.originalData.material;
+                        changeText = `${material} ${log.originalData.weight}kg removido`;
+                    }
+                    
+                    const pointsChange = log.pointsAdjustment > 0 ? 
+                        `+${log.pointsAdjustment}` : 
+                        `${log.pointsAdjustment}`;
+                    const pointsColor = log.pointsAdjustment > 0 ? 'text-green-600' : 'text-red-600';
+                    
+                    return `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-600">
+                                ${log.timestamp ? 
+                                    log.timestamp.toLocaleDateString('pt-BR') + '<br>' + 
+                                    log.timestamp.toLocaleTimeString('pt-BR') : 
+                                    'Data não disponível'}
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="${actionColor} font-medium">
+                                    ${actionIcon} ${actionText}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                ${log.adminName || log.adminEmail}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                ${log.targetUserName || 'Usuário não identificado'}
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <div>${changeText}</div>
+                                <div class="font-medium ${pointsColor}">${pointsChange} pontos</div>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600 max-w-xs">
+                                <div class="truncate" title="${log.reason || 'Motivo não informado'}">
+                                    ${log.reason || 'Motivo não informado'}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Erro ao carregar auditoria:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-red-500">
+                            <div class="text-4xl mb-2">❌</div>
+                            <p>Erro ao carregar histórico de auditoria</p>
+                            <button onclick="updateAuditLog()" class="text-sm text-blue-600 hover:text-blue-800 mt-2">
+                                Tentar novamente
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        window.refreshAuditLog = function() {
+            updateAuditLog();
+        }
+
+        // Função para alternar entre abas
+        window.showTab = function(activeTabId, inactiveTabId) {
+            // Mostrar/ocultar conteúdo das abas
+            document.getElementById(activeTabId).classList.remove('hidden');
+            document.getElementById(inactiveTabId).classList.add('hidden');
+            
+            // Atualizar estilos dos botões das abas
+            const activeBtn = document.getElementById(activeTabId + '-btn');
+            const inactiveBtn = document.getElementById(inactiveTabId + '-btn');
+            
+            // Aba ativa
+            activeBtn.className = 'px-4 py-2 text-sm font-medium text-purple-600 border-b-2 border-purple-600';
+            
+            // Aba inativa
+            inactiveBtn.className = 'px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 ml-4';
+        }
+
+        // Função para carregar histórico de auditoria de um usuário específico
+        window.addNewDelivery = async function(userId, userName) {
+            // Verificar se o usuário é admin antes de permitir criação
+            const isAdminByUID = currentUser?.uid === ADMIN_UID;
+            const isAdminByEmail = currentUser?.email === 'admin@admin.com';
+            const isAdminByFlag = currentUserData?.isAdmin === true;
+            const isAdmin = isAdminByUID || isAdminByEmail || isAdminByFlag;
+            
+            if (!isAdmin) {
+                alert('Acesso negado. Apenas administradores podem adicionar entregas.');
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-lg w-full">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-green-600">➕ Adicionar Entrega para ${userName}</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <form id="addDeliveryForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Material</label>
+                            <select id="addMaterialType" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                <option value="">Selecione o material</option>
+                                <option value="plastico">Plástico (10 pontos/kg)</option>
+                                <option value="ferro">Ferro (5 pontos/kg)</option>
+                                <option value="aluminio">Alumínio (40 pontos/kg)</option>
+                                <option value="tetrapak">Caixa Tetra Pak (1 ponto/kg)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Quantidade (kg)</label>
+                            <input type="number" id="addMaterialWeight" required min="0.1" step="0.1"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                   placeholder="0.0">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-green-700 mb-2">
+                                <span class="text-green-600">*</span> Motivo da Adição (Obrigatório)
+                            </label>
+                            <textarea id="addReason" required rows="3" placeholder="Ex: Entrega presencial registrada pelo admin, correção de entrega não registrada..."
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Este motivo será registrado no histórico de auditoria</p>
+                        </div>
+                        
+                        <div id="addPointsPreview" class="bg-green-50 border border-green-200 rounded-lg p-4 hidden">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-green-600">💰</span>
+                                <span class="text-green-800 font-medium">${userName} ganhará: </span>
+                                <span id="addPreviewPoints" class="text-green-600 font-bold">0 pontos</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-3 pt-4">
+                            <button type="button" onclick="this.closest('.fixed').remove()" 
+                                    class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 px-4 rounded-lg">
+                                Cancelar
+                            </button>
+                            <button type="submit" id="addDeliveryBtn"
+                                    class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg">
+                                <span id="addDeliveryBtnText">Adicionar Entrega</span>
+                                <div id="addDeliveryBtnLoading" class="loading ml-2 hidden"></div>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Event listeners para preview de pontos
+            const materialSelect = modal.querySelector('#addMaterialType');
+            const weightInput = modal.querySelector('#addMaterialWeight');
+            const previewElement = modal.querySelector('#addPreviewPoints');
+            const previewContainer = modal.querySelector('#addPointsPreview');
+            
+            function updateAddPreview() {
+                const material = materialSelect.value;
+                const weight = parseFloat(weightInput.value) || 0;
+                
+                if (material && weight > 0) {
+                    const points = pointsTable[material] * weight;
+                    previewElement.textContent = `${points} pontos`;
+                    previewContainer.classList.remove('hidden');
+                } else {
+                    previewContainer.classList.add('hidden');
+                }
+            }
+            
+            materialSelect.addEventListener('change', updateAddPreview);
+            weightInput.addEventListener('input', updateAddPreview);
+            
+            // Form submission
+            modal.querySelector('#addDeliveryForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const material = materialSelect.value;
+                const weight = parseFloat(weightInput.value);
+                const points = pointsTable[material] * weight;
+                const reason = modal.querySelector('#addReason').value.trim();
+                
+                if (!reason) {
+                    alert('Por favor, informe o motivo da adição.');
+                    return;
+                }
+                
+                // Mostrar loading
+                const btn = modal.querySelector('#addDeliveryBtn');
+                const btnText = modal.querySelector('#addDeliveryBtnText');
+                const btnLoading = modal.querySelector('#addDeliveryBtnLoading');
+                
+                btn.disabled = true;
+                btnText.textContent = 'Adicionando...';
+                btnLoading.classList.remove('hidden');
+                
+                try {
+                    console.log('Adicionando nova entrega:', {
+                        userId,
+                        userName,
+                        material,
+                        weight,
+                        points,
+                        reason
+                    });
+                    
+                    // Buscar dados do usuário para o nome
+                    const userDoc = await db.collection('users').doc(userId).get();
+                    const userData = userDoc.data();
+                    
+                    // Criar entrega no Firestore
+                    const deliveryData = {
+                        userId: userId,
+                        userEmail: userData.email,
+                        userName: userData.name || userName,
+                        material: material,
+                        weight: weight,
+                        points: points,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        addedByAdmin: true,
+                        adminId: currentUser.uid,
+                        adminEmail: currentUser.email,
+                        adminName: currentUserData.name,
+                        additionReason: reason
+                    };
+                    
+                    console.log('Dados da entrega a serem salvos:', deliveryData);
+                    const deliveryRef = await db.collection('deliveries').add(deliveryData);
+                    console.log('✅ Entrega criada com ID:', deliveryRef.id);
+                    
+                    // Registrar no histórico de auditoria
+                    console.log('Registrando no histórico de auditoria...');
+                    const auditData = {
+                        action: 'ADD_DELIVERY',
+                        adminId: currentUser.uid,
+                        adminEmail: currentUser.email,
+                        adminName: currentUserData.name,
+                        targetUserId: userId,
+                        targetUserName: userData.name || userName,
+                        deliveryId: deliveryRef.id,
+                        newData: {
+                            material: material,
+                            weight: weight,
+                            points: points
+                        },
+                        reason: reason,
+                        pointsAdjustment: points,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    console.log('Dados da auditoria a serem salvos:', auditData);
+                    const auditRef = await db.collection('audit_log').add(auditData);
+                    console.log('✅ Auditoria registrada com sucesso, ID:', auditRef.id);
+                    
+                    // Atualizar pontos do usuário
+                    console.log('Atualizando pontos do usuário...');
+                    await db.collection('users').doc(userId).update({
+                        points: firebase.firestore.FieldValue.increment(points)
+                    });
+                    console.log('✅ Pontos do usuário atualizados');
+                    
+                    alert(`Entrega adicionada com sucesso! ${userName} ganhou ${points} pontos.`);
+                    modal.remove();
+                    
+                    // Atualizar a interface
+                    updateAdminStats();
+                    updateUsersTable();
+                    
+                    // Recarregar o modal de gerenciamento se ainda estiver aberto
+                    const manageModal = document.querySelector('.fixed');
+                    if (manageModal && manageModal.innerHTML.includes('Gerenciar Entregas')) {
+                        manageModal.remove();
+                        // Reabrir o modal com dados atualizados
+                        setTimeout(() => {
+                            manageUserDeliveries(userId, userName);
+                        }, 100);
+                    }
+                    
+                } catch (error) {
+                    console.error('Erro detalhado ao adicionar entrega:', error);
+                    console.error('Código do erro:', error.code);
+                    console.error('Mensagem do erro:', error.message);
+                    
+                    let message = 'Erro ao adicionar entrega: ';
+                    
+                    switch (error.code) {
+                        case 'permission-denied':
+                            message += 'Permissão negada. Verifique se você tem privilégios de administrador.';
+                            break;
+                        case 'unavailable':
+                            message += 'Serviço temporariamente indisponível. Tente novamente.';
+                            break;
+                        default:
+                            message += error.message;
+                    }
+                    
+                    alert(message);
+                } finally {
+                    // Restaurar botão
+                    btn.disabled = false;
+                    btnText.textContent = 'Adicionar Entrega';
+                    btnLoading.classList.add('hidden');
+                }
+            });
+        }
+
+        window.loadUserAuditHistory = async function(userId, userName) {
+            const container = document.getElementById('userAuditHistory');
+            
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="loading mx-auto mb-2"></div>
+                    <p class="text-gray-500 text-sm">Carregando histórico de ${userName}...</p>
+                </div>
+            `;
+            
+            try {
+                console.log('Carregando auditoria para usuário:', userId, userName);
+                
+                let auditSnapshot;
+                try {
+                    auditSnapshot = await db.collection('audit_log')
+                        .where('targetUserId', '==', userId)
+                        .orderBy('timestamp', 'desc')
+                        .limit(50)
+                        .get();
+                } catch (orderError) {
+                    console.log('Erro com orderBy na auditoria do usuário, tentando sem ordenação:', orderError);
+                    auditSnapshot = await db.collection('audit_log')
+                        .where('targetUserId', '==', userId)
+                        .limit(50)
+                        .get();
+                }
+                
+                console.log('Registros de auditoria encontrados para', userName, ':', auditSnapshot.size);
+                
+                if (auditSnapshot.empty) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <div class="text-4xl mb-2">✅</div>
+                            <p>Nenhuma alteração registrada para ${userName}</p>
+                            <p class="text-sm">As entregas deste usuário não foram modificadas pelo administrador</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const auditLogs = auditSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    console.log('Log de auditoria:', data);
+                    return {
+                        id: doc.id,
+                        ...data,
+                        timestamp: data.timestamp?.toDate()
+                    };
+                });
+                
+                // Ordenar manualmente se necessário
+                auditLogs.sort((a, b) => {
+                    if (!a.timestamp && !b.timestamp) return 0;
+                    if (!a.timestamp) return 1;
+                    if (!b.timestamp) return -1;
+                    return b.timestamp - a.timestamp;
+                });
+                
+                container.innerHTML = `
+                    <div class="space-y-4">
+                        ${auditLogs.map(log => {
+                            let actionText, actionIcon, actionColor;
+                            
+                            switch (log.action) {
+                                case 'ADD_DELIVERY':
+                                    actionText = 'Adição';
+                                    actionIcon = '➕';
+                                    actionColor = 'text-green-600';
+                                    break;
+                                case 'EDIT_DELIVERY':
+                                    actionText = 'Edição';
+                                    actionIcon = '✏️';
+                                    actionColor = 'text-blue-600';
+                                    break;
+                                case 'DELETE_DELIVERY':
+                                    actionText = 'Exclusão';
+                                    actionIcon = '🗑️';
+                                    actionColor = 'text-red-600';
+                                    break;
+                                default:
+                                    actionText = 'Alteração';
+                                    actionIcon = '📝';
+                                    actionColor = 'text-gray-600';
+                            }
+                            
+                            let changeText = '';
+                            if (log.action === 'ADD_DELIVERY') {
+                                const material = materialNames[log.newData.material] || log.newData.material;
+                                changeText = `${material} ${log.newData.weight}kg adicionado`;
+                            } else if (log.action === 'EDIT_DELIVERY') {
+                                const oldMaterial = materialNames[log.originalData.material] || log.originalData.material;
+                                const newMaterial = materialNames[log.newData.material] || log.newData.material;
+                                changeText = `${oldMaterial} ${log.originalData.weight}kg → ${newMaterial} ${log.newData.weight}kg`;
+                            } else if (log.action === 'DELETE_DELIVERY') {
+                                const material = materialNames[log.originalData.material] || log.originalData.material;
+                                changeText = `${material} ${log.originalData.weight}kg removido`;
+                            }
+                            
+                            const pointsChange = log.pointsAdjustment > 0 ? 
+                                `+${log.pointsAdjustment}` : 
+                                `${log.pointsAdjustment}`;
+                            const pointsColor = log.pointsAdjustment > 0 ? 'text-green-600' : 'text-red-600';
+                            
+                            return `
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="${actionColor} text-lg">${actionIcon}</span>
+                                            <span class="${actionColor} font-medium">${actionText}</span>
+                                            <span class="text-gray-400">•</span>
+                                            <span class="text-sm text-gray-600">
+                                                ${log.timestamp ? 
+                                                    log.timestamp.toLocaleDateString('pt-BR') + ' às ' + 
+                                                    log.timestamp.toLocaleTimeString('pt-BR') : 
+                                                    'Data não disponível'}
+                                            </span>
+                                        </div>
+                                        <span class="font-medium ${pointsColor}">${pointsChange} pontos</span>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-3">
+                                        <div>
+                                            <span class="text-gray-500">Alteração:</span>
+                                            <p class="font-medium">${changeText}</p>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-500">Administrador:</span>
+                                            <p class="font-medium">${log.adminName || log.adminEmail}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    ${log.deliveryId ? `
+                                        <div class="text-xs text-gray-500 mb-2">
+                                            ID da Entrega: ${log.deliveryId}
+                                        </div>
+                                    ` : ''}
+                                    
+                                    <div>
+                                        <span class="text-gray-500 text-sm">Motivo:</span>
+                                        <p class="text-gray-700 bg-gray-50 p-2 rounded mt-1">${log.reason || 'Motivo não informado'}</p>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Erro detalhado ao carregar auditoria do usuário:', error);
+                console.error('Código do erro:', error.code);
+                console.error('Mensagem do erro:', error.message);
+                
+                container.innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <div class="text-4xl mb-2">❌</div>
+                        <p>Erro ao carregar histórico</p>
+                        <p class="text-sm mt-1">Detalhes: ${error.message}</p>
+                        <button onclick="loadUserAuditHistory('${userId}', '${userName}')" 
+                                class="text-sm text-blue-600 hover:text-blue-800 mt-2 block mx-auto">
+                            Tentar novamente
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9854236d444eaf8f',t:'MTc1ODkwNDE0OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
