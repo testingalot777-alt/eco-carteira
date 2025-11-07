@@ -116,7 +116,7 @@
       </div>
       <h1 class="text-2xl font-bold text-gray-800">ECO CARTEIRA</h1>
      </div>
-     <div class="flex items-center space-x-4"><span id="userName" class="text-gray-700 font-medium"></span> <button id="adminPanelBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium hidden"> Painel Admin </button> <button id="logoutBtn" class="text-red-600 hover:text-red-700 font-medium"> Sair </button>
+     <div class="flex items-center space-x-4"><span id="userName" class="text-gray-700 font-medium"></span> <button id="changePasswordBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium"> Alterar Senha </button> <button id="adminPanelBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium hidden"> Painel Admin </button> <button id="logoutBtn" class="text-red-600 hover:text-red-700 font-medium"> Sair </button>
      </div>
     </div>
    </header>
@@ -281,6 +281,25 @@
     <h3 class="text-2xl font-bold text-gray-800 mb-2">Entrega Registrada!</h3>
     <p id="successMessage" class="text-gray-600 mb-6"></p><button id="closeModal" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg"> Continuar </button>
    </div>
+  </div><!-- Modal de Alteração de Senha -->
+  <div id="changePasswordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+   <div class="bg-white rounded-2xl p-8 max-w-md w-full">
+    <div class="flex justify-between items-center mb-6">
+     <h3 class="text-2xl font-bold text-gray-800">🔐 Alterar Senha</h3><button id="closePasswordModal" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+    </div>
+    <form id="changePasswordForm" class="space-y-6">
+     <div><label class="block text-sm font-medium text-gray-700 mb-2">Senha Atual</label> <input type="password" id="currentPassword" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent" placeholder="Digite sua senha atual">
+     </div>
+     <div><label class="block text-sm font-medium text-gray-700 mb-2">Nova Senha</label> <input type="password" id="newPassword" required minlength="6" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent" placeholder="Digite a nova senha">
+      <p class="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+     </div>
+     <div><label class="block text-sm font-medium text-gray-700 mb-2">Confirmar Nova Senha</label> <input type="password" id="confirmNewPassword" required minlength="6" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent" placeholder="Confirme a nova senha">
+     </div>
+     <div class="flex space-x-3 pt-4"><button type="button" id="cancelPasswordChange" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 px-4 rounded-lg"> Cancelar </button> <button type="submit" id="changePasswordSubmitBtn" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center"> <span id="changePasswordBtnText">Alterar Senha</span>
+       <div id="changePasswordBtnLoading" class="loading ml-2 hidden"></div></button>
+     </div>
+    </form>
+   </div>
   </div>
   <script>
         // Configuração do Firebase - Carregada de forma segura
@@ -382,6 +401,10 @@
         document.getElementById('logoutBtnAdmin').addEventListener('click', handleLogout);
         document.getElementById('adminPanelBtn').addEventListener('click', showAdminPanel);
         document.getElementById('backToDashboard').addEventListener('click', showDashboard);
+        document.getElementById('changePasswordBtn').addEventListener('click', showChangePasswordModal);
+        document.getElementById('closePasswordModal').addEventListener('click', hideChangePasswordModal);
+        document.getElementById('cancelPasswordChange').addEventListener('click', hideChangePasswordModal);
+        document.getElementById('changePasswordForm').addEventListener('submit', handleChangePassword);
         document.getElementById('closeModal').addEventListener('click', () => {
             successModal.classList.add('hidden');
         });
@@ -550,6 +573,127 @@
             }
         }
 
+        // Funções para alteração de senha
+        function showChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.remove('hidden');
+            // Limpar campos
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+        }
+
+        function hideChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.add('hidden');
+        }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            
+            console.log('🔐 Iniciando processo de alteração de senha...');
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            
+            console.log('Validando campos de senha...');
+            
+            // Validar se as senhas coincidem
+            if (newPassword !== confirmNewPassword) {
+                alert('As senhas não coincidem. Verifique e tente novamente.');
+                return;
+            }
+            
+            // Validar se a nova senha é diferente da atual
+            if (currentPassword === newPassword) {
+                alert('A nova senha deve ser diferente da senha atual.');
+                return;
+            }
+            
+            // Validar tamanho mínimo
+            if (newPassword.length < 6) {
+                alert('A nova senha deve ter pelo menos 6 caracteres.');
+                return;
+            }
+            
+            console.log('✅ Validações passaram, iniciando alteração...');
+            
+            // Mostrar loading manualmente
+            const btn = document.getElementById('changePasswordSubmitBtn');
+            const btnText = document.getElementById('changePasswordBtnText');
+            const btnLoading = document.getElementById('changePasswordBtnLoading');
+            
+            btn.disabled = true;
+            if (btnText) btnText.textContent = 'Alterando...';
+            if (btnLoading) btnLoading.classList.remove('hidden');
+            
+            try {
+                console.log('🔑 Reautenticando usuário...');
+                
+                // Verificar se o usuário atual existe
+                if (!currentUser) {
+                    throw new Error('Usuário não está logado');
+                }
+                
+                console.log('Usuário atual:', currentUser.email);
+                
+                // Reautenticar o usuário com a senha atual
+                const credential = firebase.auth.EmailAuthProvider.credential(
+                    currentUser.email,
+                    currentPassword
+                );
+                
+                console.log('Tentando reautenticar...');
+                await currentUser.reauthenticateWithCredential(credential);
+                console.log('✅ Reautenticação bem-sucedida');
+                
+                // Alterar a senha
+                console.log('🔄 Atualizando senha...');
+                await currentUser.updatePassword(newPassword);
+                console.log('✅ Senha alterada com sucesso!');
+                
+                alert('Senha alterada com sucesso!');
+                hideChangePasswordModal();
+                
+            } catch (error) {
+                console.error('❌ Erro detalhado ao alterar senha:', error);
+                console.error('Código do erro:', error.code);
+                console.error('Mensagem do erro:', error.message);
+                
+                let message = 'Erro ao alterar senha. Tente novamente.';
+                
+                switch (error.code) {
+                    case 'auth/wrong-password':
+                        message = 'Senha atual incorreta! Verifique sua senha atual e tente novamente.';
+                        break;
+                    case 'auth/weak-password':
+                        message = 'Nova senha muito fraca! Use pelo menos 6 caracteres.';
+                        break;
+                    case 'auth/requires-recent-login':
+                        message = 'Por segurança, você precisa fazer login novamente antes de alterar a senha.';
+                        break;
+                    case 'auth/too-many-requests':
+                        message = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+                        break;
+                    case 'auth/user-mismatch':
+                        message = 'Erro de autenticação. Faça login novamente.';
+                        break;
+                    case 'auth/invalid-credential':
+                        message = 'Credenciais inválidas. Verifique sua senha atual.';
+                        break;
+                    default:
+                        message = `Erro: ${error.message}`;
+                }
+                
+                alert(message);
+            } finally {
+                console.log('🔄 Restaurando botão...');
+                // Restaurar botão manualmente
+                btn.disabled = false;
+                if (btnText) btnText.textContent = 'Alterar Senha';
+                if (btnLoading) btnLoading.classList.add('hidden');
+            }
+        }
+
         // Funções de dados
         async function loadUserData() {
             if (!currentUser) return;
@@ -598,24 +742,28 @@
             
             if (loading) {
                 button.disabled = true;
-                text.textContent = 'Carregando...';
-                loadingEl.classList.remove('hidden');
+                if (text) text.textContent = 'Carregando...';
+                if (loadingEl) loadingEl.classList.remove('hidden');
             } else {
                 button.disabled = false;
-                loadingEl.classList.add('hidden');
+                if (loadingEl) loadingEl.classList.add('hidden');
                 
                 // Restaurar texto original
-                switch (buttonId) {
-                    case 'loginBtn':
-                        text.textContent = 'Entrar';
-                        break;
-                    case 'registerBtn':
-                        text.textContent = 'Criar Conta';
-                        break;
-                    case 'forgotBtn':
-                        text.textContent = 'Enviar E-mail';
-                        break;
-
+                if (text) {
+                    switch (buttonId) {
+                        case 'loginBtn':
+                            text.textContent = 'Entrar';
+                            break;
+                        case 'registerBtn':
+                            text.textContent = 'Criar Conta';
+                            break;
+                        case 'forgotBtn':
+                            text.textContent = 'Enviar E-mail';
+                            break;
+                        case 'changePasswordSubmitBtn':
+                            text.textContent = 'Alterar Senha';
+                            break;
+                    }
                 }
             }
         }
@@ -867,6 +1015,10 @@
                             <button onclick="manageUserDeliveries('${user.id}', '${user.name || user.email}')" 
                                     class="text-blue-600 hover:text-blue-800 font-medium">
                                 Gerenciar
+                            </button>
+                            <button onclick="deleteUser('${user.id}', '${user.name || user.email}', ${user.points || 0}, ${user.deliveriesCount})" 
+                                    class="text-red-600 hover:text-red-800 font-medium">
+                                Excluir
                             </button>
                         </td>
                     </tr>
@@ -1582,24 +1734,60 @@
                 });
                 
                 tbody.innerHTML = auditLogs.map(log => {
-                    const actionText = log.action === 'EDIT_DELIVERY' ? 'Edição' : 'Exclusão';
-                    const actionIcon = log.action === 'EDIT_DELIVERY' ? '✏️' : '🗑️';
-                    const actionColor = log.action === 'EDIT_DELIVERY' ? 'text-blue-600' : 'text-red-600';
+                    let actionText, actionIcon, actionColor;
+                    
+                    switch (log.action) {
+                        case 'ADD_DELIVERY':
+                            actionText = 'Adição';
+                            actionIcon = '➕';
+                            actionColor = 'text-green-600';
+                            break;
+                        case 'EDIT_DELIVERY':
+                            actionText = 'Edição';
+                            actionIcon = '✏️';
+                            actionColor = 'text-blue-600';
+                            break;
+                        case 'DELETE_DELIVERY':
+                            actionText = 'Exclusão';
+                            actionIcon = '🗑️';
+                            actionColor = 'text-red-600';
+                            break;
+                        case 'DELETE_USER':
+                            actionText = 'Exclusão de Usuário';
+                            actionIcon = '👤❌';
+                            actionColor = 'text-red-800';
+                            break;
+                        default:
+                            actionText = 'Alteração';
+                            actionIcon = '📝';
+                            actionColor = 'text-gray-600';
+                    }
                     
                     let changeText = '';
-                    if (log.action === 'EDIT_DELIVERY') {
+                    if (log.action === 'ADD_DELIVERY') {
+                        const material = materialNames[log.newData.material] || log.newData.material;
+                        changeText = `${material} ${log.newData.weight}kg adicionado`;
+                    } else if (log.action === 'EDIT_DELIVERY') {
                         const oldMaterial = materialNames[log.originalData.material] || log.originalData.material;
                         const newMaterial = materialNames[log.newData.material] || log.newData.material;
                         changeText = `${oldMaterial} ${log.originalData.weight}kg → ${newMaterial} ${log.newData.weight}kg`;
-                    } else {
+                    } else if (log.action === 'DELETE_DELIVERY') {
                         const material = materialNames[log.originalData.material] || log.originalData.material;
                         changeText = `${material} ${log.originalData.weight}kg removido`;
+                    } else if (log.action === 'DELETE_USER') {
+                        changeText = `Usuário excluído (${log.deliveriesRemoved || 0} entregas removidas)`;
                     }
                     
-                    const pointsChange = log.pointsAdjustment > 0 ? 
-                        `+${log.pointsAdjustment}` : 
-                        `${log.pointsAdjustment}`;
-                    const pointsColor = log.pointsAdjustment > 0 ? 'text-green-600' : 'text-red-600';
+                    let pointsChange, pointsColor;
+                    if (log.action === 'DELETE_USER') {
+                        pointsChange = `-${log.pointsRemoved || 0}`;
+                        pointsColor = 'text-red-600';
+                    } else {
+                        pointsChange = log.pointsAdjustment > 0 ? 
+                            `+${log.pointsAdjustment}` : 
+                            `${log.pointsAdjustment}`;
+                        pointsColor = log.pointsAdjustment > 0 ? 'text-green-600' : 'text-red-600';
+                    }
                     
                     return `
                         <tr class="hover:bg-gray-50">
@@ -1900,6 +2088,258 @@
             });
         }
 
+        window.deleteUser = async function(userId, userName, userPoints, deliveriesCount) {
+            // Verificar se o usuário é admin antes de permitir exclusão
+            const isAdminByUID = currentUser?.uid === ADMIN_UID;
+            const isAdminByEmail = currentUser?.email === 'admin@admin.com';
+            const isAdminByFlag = currentUserData?.isAdmin === true;
+            const isAdmin = isAdminByUID || isAdminByEmail || isAdminByFlag;
+            
+            if (!isAdmin) {
+                alert('Acesso negado. Apenas administradores podem excluir usuários.');
+                return;
+            }
+            
+            // Mostrar modal de confirmação
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-red-600">⚠️ Excluir Usuário</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <div class="text-center mb-4">
+                            <div class="text-6xl mb-2">👤</div>
+                            <h4 class="text-lg font-semibold text-gray-800">${userName}</h4>
+                        </div>
+                        
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                            <p class="text-red-800 font-medium mb-3">Esta ação irá:</p>
+                            <ul class="text-red-700 text-sm space-y-2">
+                                <li class="flex items-center space-x-2">
+                                    <span class="text-red-600">•</span>
+                                    <span>Excluir permanentemente o usuário <strong>${userName}</strong></span>
+                                </li>
+                                <li class="flex items-center space-x-2">
+                                    <span class="text-red-600">•</span>
+                                    <span>Remover todas as <strong>${deliveriesCount} entregas</strong> do usuário</span>
+                                </li>
+                                <li class="flex items-center space-x-2">
+                                    <span class="text-red-600">•</span>
+                                    <span>Perder <strong>${userPoints} pontos</strong> acumulados</span>
+                                </li>
+                                <li class="flex items-center space-x-2">
+                                    <span class="text-red-600">•</span>
+                                    <span>Registrar a exclusão no histórico de auditoria</span>
+                                </li>
+                            </ul>
+                            <div class="mt-3 p-2 bg-red-100 rounded border-l-4 border-red-500">
+                                <p class="text-red-800 font-bold text-sm">⚠️ ESTA AÇÃO NÃO PODE SER DESFEITA!</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="deleteUserForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-red-700 mb-2">
+                                <span class="text-red-600">*</span> Motivo da Exclusão (Obrigatório)
+                            </label>
+                            <textarea id="deleteUserReason" required rows="3" 
+                                      placeholder="Ex: Usuário solicitou exclusão da conta, violação de termos, conta duplicada..."
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Este motivo será registrado no histórico de auditoria</p>
+                        </div>
+                        
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="text-yellow-600">⚠️</span>
+                                <span class="font-medium text-yellow-800">Atenção</span>
+                            </div>
+                            <p class="text-yellow-700 text-sm">
+                                Certifique-se de que realmente deseja excluir este usuário. Esta ação é irreversível.
+                            </p>
+                        </div>
+                        
+                        <div class="flex space-x-3 pt-4">
+                            <button type="button" onclick="this.closest('.fixed').remove()" 
+                                    class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 px-4 rounded-lg">
+                                Cancelar
+                            </button>
+                            <button type="submit" id="deleteUserBtn"
+                                    class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg">
+                                <span id="deleteUserBtnText">Confirmar Exclusão</span>
+                                <div id="deleteUserBtnLoading" class="loading ml-2 hidden"></div>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Form submission para exclusão do usuário
+            modal.querySelector('#deleteUserForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const reason = modal.querySelector('#deleteUserReason').value.trim();
+                
+                if (!reason) {
+                    alert('Por favor, informe o motivo da exclusão.');
+                    return;
+                }
+                
+                await performUserDeletion(userId, userName, userPoints, deliveriesCount, reason);
+                modal.remove();
+            });
+        }
+        
+        async function performUserDeletion(userId, userName, userPoints, deliveriesCount, reason) {
+            // Mostrar loading
+            const btn = document.getElementById('deleteUserBtn');
+            const btnText = document.getElementById('deleteUserBtnText');
+            const btnLoading = document.getElementById('deleteUserBtnLoading');
+            
+            if (btn) btn.disabled = true;
+            if (btnText) btnText.textContent = 'Excluindo...';
+            if (btnLoading) btnLoading.classList.remove('hidden');
+            
+            try {
+                console.log('Iniciando exclusão do usuário:', {
+                    userId,
+                    userName,
+                    userPoints,
+                    deliveriesCount,
+                    reason
+                });
+                
+                // 1. Buscar dados completos do usuário antes da exclusão
+                const userDoc = await db.collection('users').doc(userId).get();
+                const userData = userDoc.data();
+                
+                if (!userDoc.exists) {
+                    throw new Error('Usuário não encontrado');
+                }
+                
+                console.log('Dados do usuário a ser excluído:', userData);
+                
+                // 2. Buscar todas as entregas do usuário
+                console.log('Buscando entregas do usuário...');
+                const deliveriesSnapshot = await db.collection('deliveries')
+                    .where('userId', '==', userId)
+                    .get();
+                
+                const userDeliveries = deliveriesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                console.log(`Encontradas ${userDeliveries.length} entregas para excluir`);
+                
+                // 3. Registrar no histórico de auditoria ANTES da exclusão
+                console.log('Registrando exclusão no histórico de auditoria...');
+                const auditData = {
+                    action: 'DELETE_USER',
+                    adminId: currentUser.uid,
+                    adminEmail: currentUser.email,
+                    adminName: currentUserData.name,
+                    targetUserId: userId,
+                    targetUserName: userName,
+                    deletedUserData: {
+                        name: userData.name,
+                        email: userData.email,
+                        points: userData.points || 0,
+                        createdAt: userData.createdAt,
+                        deliveriesCount: userDeliveries.length
+                    },
+                    deletedDeliveries: userDeliveries.map(delivery => ({
+                        id: delivery.id,
+                        material: delivery.material,
+                        weight: delivery.weight,
+                        points: delivery.points,
+                        createdAt: delivery.createdAt
+                    })),
+                    reason: reason,
+                    pointsRemoved: userData.points || 0,
+                    deliveriesRemoved: userDeliveries.length,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                const auditRef = await db.collection('audit_log').add(auditData);
+                console.log('✅ Auditoria registrada com ID:', auditRef.id);
+                
+                // 4. Excluir todas as entregas do usuário
+                console.log('Excluindo entregas do usuário...');
+                const batch = db.batch();
+                
+                userDeliveries.forEach(delivery => {
+                    const deliveryRef = db.collection('deliveries').doc(delivery.id);
+                    batch.delete(deliveryRef);
+                });
+                
+                await batch.commit();
+                console.log(`✅ ${userDeliveries.length} entregas excluídas`);
+                
+                // 5. Excluir o documento do usuário
+                console.log('Excluindo documento do usuário...');
+                await db.collection('users').doc(userId).delete();
+                console.log('✅ Usuário excluído do Firestore');
+                
+                // 6. Tentar excluir a conta do Firebase Auth (pode falhar se o usuário não estiver logado)
+                try {
+                    console.log('Tentando excluir conta do Firebase Auth...');
+                    // Nota: Esta operação só funciona se o usuário estiver logado
+                    // Em um sistema real, isso seria feito via Cloud Functions com privilégios admin
+                    console.log('⚠️ Exclusão da conta Auth deve ser feita manualmente no console do Firebase');
+                } catch (authError) {
+                    console.log('Não foi possível excluir a conta Auth automaticamente:', authError.message);
+                }
+                
+                alert(`✅ Usuário ${userName} excluído com sucesso!\n\n` +
+                      `📊 Resumo da exclusão:\n` +
+                      `• Usuário: ${userName}\n` +
+                      `• Entregas removidas: ${userDeliveries.length}\n` +
+                      `• Pontos removidos: ${userData.points || 0}\n` +
+                      `• Registro salvo no histórico de auditoria\n\n` +
+                      `⚠️ Lembre-se de excluir a conta manualmente no Console do Firebase Auth se necessário.`);
+                
+                // 7. Atualizar a interface
+                console.log('Atualizando interface...');
+                updateAdminStats();
+                updateUsersTable();
+                
+            } catch (error) {
+                console.error('Erro detalhado ao excluir usuário:', error);
+                console.error('Código do erro:', error.code);
+                console.error('Mensagem do erro:', error.message);
+                
+                let message = 'Erro ao excluir usuário: ';
+                
+                switch (error.code) {
+                    case 'permission-denied':
+                        message += 'Permissão negada. Verifique se você tem privilégios de administrador.';
+                        break;
+                    case 'not-found':
+                        message += 'Usuário não encontrado.';
+                        break;
+                    case 'unavailable':
+                        message += 'Serviço temporariamente indisponível. Tente novamente.';
+                        break;
+                    default:
+                        message += error.message;
+                }
+                
+                alert(message);
+            } finally {
+                // Restaurar botão
+                if (btn) btn.disabled = false;
+                if (btnText) btnText.textContent = 'Confirmar Exclusão';
+                if (btnLoading) btnLoading.classList.add('hidden');
+            }
+        }
+
         window.loadUserAuditHistory = async function(userId, userName) {
             const container = document.getElementById('userAuditHistory');
             
@@ -2067,5 +2507,5 @@
             }
         }
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99a72ffc0338f1f2',t:'MTc2MjQ1OTMzNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99ae96cf64574fb4',t:'MTc2MjUzNjk0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
